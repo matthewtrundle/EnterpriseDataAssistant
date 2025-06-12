@@ -18,13 +18,13 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({ chart })
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chart.data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey={chart.xKey} />
+            <XAxis dataKey={chart.xKey || 'x'} />
             <YAxis />
             <Tooltip />
             <Legend />
             <Line 
               type="monotone" 
-              dataKey={chart.yKey} 
+              dataKey={chart.yKey || 'y'} 
               stroke="#3B82F6" 
               strokeWidth={2}
               dot={{ fill: '#3B82F6', r: 4 }}
@@ -42,11 +42,11 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({ chart })
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chart.data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey={chart.xKey} />
+            <XAxis dataKey={chart.xKey || 'x'} />
             <YAxis />
             <Tooltip />
             <Legend />
-            <Bar dataKey={chart.yKey} fill="#3B82F6" />
+            <Bar dataKey={chart.yKey || 'y'} fill="#3B82F6" />
           </BarChart>
         </ResponsiveContainer>
       </div>

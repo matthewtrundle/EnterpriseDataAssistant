@@ -1,4 +1,4 @@
-export type ChartType = 'line' | 'bar' | 'pie' | 'table';
+export type ChartType = 'line' | 'bar' | 'pie' | 'table' | 'scatter' | 'heatmap';
 
 export interface ChartData {
   type: ChartType;
