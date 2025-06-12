@@ -1,0 +1,178 @@
+import Anthropic from '@anthropic-ai/sdk';
+
+interface AnalysisRequest {
+  query: string;
+  dataSchema: any;
+  sampleData: any[];
+}
+
+interface AnalysisResponse {
+  sql: string;
+  visualization: {
+    type: 'line' | 'bar' | 'pie' | 'scatter' | 'table' | 'heatmap';
+    config: any;
+  };
+  insights: Array<{
+    type: 'positive' | 'negative' | 'neutral';
+    text: string;
+  }>;
+  summary: string[];
+  confidence: number;
+  slideHTML?: string;
+}
+
+export class ClaudeService {
+  private client: Anthropic | null = null;
+
+  constructor() {
+    const apiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
+    if (apiKey) {
+      this.client = new Anthropic({
+        apiKey: apiKey,
+        dangerouslyAllowBrowser: true // Only for demo purposes
+      });
+    }
+  }
+
+  async analyzeQuery(request: AnalysisRequest): Promise<AnalysisResponse> {
+    if (!this.client) {
+      console.warn('Claude API key not configured, using mock response');
+      return this.getMockResponse(request.query);
+    }
+
+    try {
+      const prompt = `You are a data analyst assistant. Analyze this business question and provide insights.
+
+User Query: "${request.query}"
+
+Data Schema:
+${JSON.stringify(request.dataSchema, null, 2)}
+
+Sample Data (first 5 rows):
+${JSON.stringify(request.sampleData.slice(0, 5), null, 2)}
+
+Please respond with a JSON object containing:
+1. sql: A SQL query that would answer the question
+2. visualization: An object with:
+   - type: One of 'line', 'bar', 'pie', 'scatter', 'table', 'heatmap'
+   - config: Configuration for the chart (xKey, yKey, etc.)
+3. insights: Array of insights with type ('positive', 'negative', 'neutral') and text
+4. summary: Array of 3-4 executive summary points
+5. confidence: A number 0-100 indicating confidence in the analysis
+6. slideHTML: Optional HTML for a presentation slide
+
+Ensure the response is valid JSON.`;
+
+      const response = await this.client.messages.create({
+        model: 'claude-3-sonnet-20240229',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
+      });
+
+      const content = response.content[0];
+      if (content.type === 'text') {
+        try {
+          return JSON.parse(content.text);
+        } catch (e) {
+          console.error('Failed to parse Claude response:', e);
+          return this.getMockResponse(request.query);
+        }
+      }
+    } catch (error) {
+      console.error('Claude API error:', error);
+      return this.getMockResponse(request.query);
+    }
+
+    return this.getMockResponse(request.query);
+  }
+
+  private getMockResponse(query: string): AnalysisResponse {
+    // Fallback mock response for demo purposes
+    return {
+      sql: `SELECT * FROM data WHERE query LIKE '%${query}%' LIMIT 100;`,
+      visualization: {
+        type: 'bar',
+        config: {
+          xKey: 'category',
+          yKey: 'value'
+        }
+      },
+      insights: [
+        {
+          type: 'neutral',
+          text: 'Analysis requires Claude API key for real-time insights'
+        }
+      ],
+      summary: [
+        'Configure REACT_APP_ANTHROPIC_API_KEY for live analysis',
+        'Upload your data to get started',
+        'Ask any business question in natural language'
+      ],
+      confidence: 75,
+      slideHTML: this.generateSlideHTML('Demo Mode', 'Configure API key for real analysis')
+    };
+  }
+
+  generateSlideHTML(title: string, content: string): string {
+    return `
+      <div class="slide-container" style="
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        padding: 3rem;
+        position: relative;
+        overflow: hidden;
+      ">
+        <div class="slide-bg-pattern" style="
+          position: absolute;
+          top: -50%;
+          right: -50%;
+          width: 200%;
+          height: 200%;
+          background-image: radial-gradient(circle, rgba(255,255,255,0.1) 2px, transparent 2px);
+          background-size: 50px 50px;
+          transform: rotate(45deg);
+          opacity: 0.3;
+        "></div>
+        
+        <h1 style="
+          font-size: 3.5rem;
+          font-weight: 700;
+          margin-bottom: 2rem;
+          text-align: center;
+          position: relative;
+          z-index: 1;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        ">${title}</h1>
+        
+        <div style="
+          font-size: 1.5rem;
+          line-height: 1.8;
+          text-align: center;
+          max-width: 800px;
+          position: relative;
+          z-index: 1;
+        ">${content}</div>
+        
+        <div class="slide-footer" style="
+          position: absolute;
+          bottom: 2rem;
+          right: 2rem;
+          font-size: 0.875rem;
+          opacity: 0.8;
+        ">
+          Generated by Enterprise Data Assistant
+        </div>
+      </div>
+    `;
+  }
+}
