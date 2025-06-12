@@ -28,13 +28,13 @@ A powerful demo showcasing how AI can transform business data analysis. Upload a
 npm install
 ```
 
-### 2. Configure Claude API (Optional but Recommended)
+### 2. Configure OpenRouter API (Optional but Recommended)
 Create a `.env` file in the root directory:
 ```
-REACT_APP_ANTHROPIC_API_KEY=your_claude_api_key_here
+REACT_APP_OPENROUTER_API_KEY=your_openrouter_api_key_here
 ```
 
-Get your API key from: https://console.anthropic.com/
+Get your API key from: https://openrouter.ai/keys
 
 ### 3. Start the Application
 ```bash
@@ -106,7 +106,7 @@ Once you've uploaded data (or used the demo data), try these queries:
 
 - **Frontend**: React + TypeScript + Tailwind CSS
 - **Visualizations**: Recharts
-- **AI**: Claude 3 API (Anthropic)
+- **AI**: Claude 3 via OpenRouter API
 - **File Processing**: PapaParse (CSV), SheetJS (Excel)
 - **State Management**: React Hooks
 - **Styling**: Tailwind CSS for responsive design

@@ -5,7 +5,7 @@ import { QueryResults } from './components/QueryResults';
 import { DataUploader } from './components/DataUploader';
 import { DataPreview } from './components/DataPreview';
 import { processQuery } from './services/queryProcessor';
-import { ClaudeService } from './services/claudeService';
+import { OpenRouterService } from './services/openRouterService';
 import { QueryResult } from './types/query';
 import { getMockData } from './data/mockDataStore';
 
@@ -15,7 +15,7 @@ function App() {
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
   const [uploadedData, setUploadedData] = useState<any[] | null>(null);
   const [dataFileName, setDataFileName] = useState<string>('');
-  const claudeService = new ClaudeService();
+  const openRouterService = new OpenRouterService();
 
   const handleDataLoaded = (data: any[], fileName: string) => {
     setUploadedData(data);
@@ -33,7 +33,7 @@ function App() {
       if (uploadedData && uploadedData.length > 0) {
         // Use Claude for analysis if data is uploaded
         const schema = Object.keys(uploadedData[0] || {});
-        const analysisResult = await claudeService.analyzeQuery({
+        const analysisResult = await openRouterService.analyzeQuery({
           query,
           dataSchema: schema,
           sampleData: uploadedData
