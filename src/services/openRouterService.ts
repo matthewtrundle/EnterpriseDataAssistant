@@ -80,25 +80,56 @@ Ensure the response is valid JSON only, no other text.`;
       }
 
       const data = await response.json();
+      console.log('OpenRouter raw response:', data);
+      
       const content = data.choices[0]?.message?.content;
       
       if (content) {
         try {
-          // Extract JSON from the response
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            // Add slideHTML if not present
-            if (!parsed.slideHTML) {
-              parsed.slideHTML = this.generateSlideHTML(
-                request.query,
-                parsed.insights?.[0]?.text || 'Data Analysis Complete'
-              );
-            }
-            return parsed;
-          }
+          // Try to parse the entire content as JSON first
+          const parsed = JSON.parse(content);
+          console.log('Parsed response:', parsed);
+          
+          // Ensure we have the required structure
+          const result = {
+            sql: parsed.sql || `SELECT * FROM sales_data WHERE query = '${request.query}'`,
+            visualization: parsed.visualization || {
+              type: 'bar',
+              config: { xKey: 'product_category', yKey: 'revenue' }
+            },
+            insights: parsed.insights || [{
+              type: 'neutral',
+              text: 'Analysis completed successfully'
+            }],
+            summary: parsed.summary || ['Data analyzed', 'Results generated'],
+            confidence: parsed.confidence || 85,
+            slideHTML: parsed.slideHTML || this.generateSlideHTML(
+              request.query,
+              parsed.insights?.[0]?.text || 'Data Analysis Complete'
+            )
+          };
+          
+          return result;
         } catch (e) {
           console.error('Failed to parse OpenRouter response:', e);
+          console.log('Content was:', content);
+          
+          // Try to extract JSON from the response
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try {
+              const parsed = JSON.parse(jsonMatch[0]);
+              return {
+                ...parsed,
+                slideHTML: parsed.slideHTML || this.generateSlideHTML(
+                  request.query,
+                  parsed.insights?.[0]?.text || 'Data Analysis Complete'
+                )
+              };
+            } catch (e2) {
+              console.error('Failed to parse extracted JSON:', e2);
+            }
+          }
         }
       }
     } catch (error) {

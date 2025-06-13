@@ -44,8 +44,12 @@ function App() {
         result = {
           ...analysisResult,
           chart: {
-            ...analysisResult.visualization,
-            data: processDataForVisualization(uploadedData, analysisResult.visualization)
+            type: analysisResult.visualization?.type || 'bar',
+            data: processDataForVisualization(uploadedData, analysisResult.visualization),
+            xKey: analysisResult.visualization?.config?.xKey,
+            yKey: analysisResult.visualization?.config?.yKey,
+            nameKey: analysisResult.visualization?.config?.nameKey,
+            valueKey: analysisResult.visualization?.config?.valueKey
           }
         };
       } else {
@@ -70,22 +74,79 @@ function App() {
   };
 
   const processDataForVisualization = (data: any[], vizConfig: any) => {
-    // Simple data processing based on visualization type
-    if (vizConfig.type === 'pie') {
-      // Group data by a category field if available
-      const groupField = vizConfig.config?.groupBy || Object.keys(data[0])[0];
+    const type = vizConfig?.type || 'bar';
+    const config = vizConfig?.config || {};
+    
+    console.log('Processing data for visualization:', { type, config, sampleData: data.slice(0, 3) });
+    
+    // For pie charts, group by category
+    if (type === 'pie') {
+      const groupField = config.groupBy || config.nameKey || 'product_category';
+      const valueField = config.valueKey || 'revenue';
+      
       const grouped = data.reduce((acc, item) => {
-        const key = item[groupField];
+        const key = item[groupField] || 'Other';
         if (!acc[key]) acc[key] = 0;
-        acc[key]++;
+        acc[key] += typeof item[valueField] === 'number' ? item[valueField] : 1;
         return acc;
       }, {});
       
-      return Object.entries(grouped).map(([name, value]) => ({ name, value }));
+      return Object.entries(grouped)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => (b.value as number) - (a.value as number))
+        .slice(0, 10); // Top 10 for pie charts
     }
     
-    // For other chart types, return the data as-is
-    return data.slice(0, 50); // Limit to 50 rows for performance
+    // For bar charts, aggregate by x-axis
+    if (type === 'bar') {
+      const xKey = config.xKey || 'product_category';
+      const yKey = config.yKey || 'revenue';
+      
+      const grouped = data.reduce((acc, item) => {
+        const key = item[xKey] || 'Other';
+        if (!acc[key]) acc[key] = { [xKey]: key, [yKey]: 0, count: 0 };
+        acc[key][yKey] += typeof item[yKey] === 'number' ? item[yKey] : 0;
+        acc[key].count += 1;
+        return acc;
+      }, {});
+      
+      return Object.values(grouped)
+        .map((item: any) => ({
+          ...item,
+          [yKey]: Math.round(item[yKey] * 100) / 100
+        }))
+        .sort((a: any, b: any) => b[yKey] - a[yKey])
+        .slice(0, 20);
+    }
+    
+    // For line charts, ensure data is sorted by date
+    if (type === 'line') {
+      const xKey = config.xKey || 'date';
+      const yKey = config.yKey || 'revenue';
+      
+      // Aggregate by date if needed
+      const grouped = data.reduce((acc, item) => {
+        const key = item[xKey];
+        if (!acc[key]) acc[key] = { [xKey]: key, [yKey]: 0, count: 0 };
+        acc[key][yKey] += typeof item[yKey] === 'number' ? item[yKey] : 0;
+        acc[key].count += 1;
+        return acc;
+      }, {});
+      
+      return Object.values(grouped)
+        .map((item: any) => ({
+          ...item,
+          [yKey]: Math.round(item[yKey] * 100) / 100
+        }))
+        .sort((a: any, b: any) => {
+          if (a[xKey] < b[xKey]) return -1;
+          if (a[xKey] > b[xKey]) return 1;
+          return 0;
+        });
+    }
+    
+    // For tables and other types, return top rows
+    return data.slice(0, 50);
   };
 
   const hasData = uploadedData && uploadedData.length > 0;
