@@ -90,19 +90,21 @@ export const DataUploader: React.FC<DataUploaderProps> = ({ onDataLoaded }) => {
 
   if (uploadStatus === 'success') {
     return (
-      <div className="w-full max-w-4xl mx-auto p-6">
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+      <div className="w-full max-w-4xl mx-auto p-6 animate-scale-in">
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 shadow-soft">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                <CheckCircle className="w-6 h-6 text-white" />
+              </div>
               <div>
-                <p className="font-semibold text-green-900">Data loaded successfully!</p>
-                <p className="text-sm text-green-700">{fileName}</p>
+                <p className="font-bold text-neutral-900">Data loaded successfully!</p>
+                <p className="text-sm text-neutral-600 mt-0.5">{fileName}</p>
               </div>
             </div>
             <button
               onClick={resetUpload}
-              className="text-green-600 hover:text-green-800"
+              className="p-2 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded-lg transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -113,48 +115,76 @@ export const DataUploader: React.FC<DataUploaderProps> = ({ onDataLoaded }) => {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6">
+    <div className="w-full max-w-4xl mx-auto p-6 animate-slide-up" style={{animationDelay: '0.1s'}}>
       <div
         {...getRootProps()}
         className={`
-          border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all
-          ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
+          relative border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer 
+          transition-all duration-300 group overflow-hidden
+          ${isDragActive 
+            ? 'border-brand-500 bg-gradient-to-br from-brand-50 to-accent-50 scale-[1.02]' 
+            : 'border-neutral-300 hover:border-brand-400 hover:shadow-lg bg-white'
+          }
           ${uploadStatus === 'processing' ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
         <input {...getInputProps()} disabled={uploadStatus === 'processing'} />
         
-        <div className="flex flex-col items-center space-y-4">
+        {/* Background decoration */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
+          <div className="absolute top-10 right-10 w-32 h-32 bg-brand-500 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 left-10 w-32 h-32 bg-accent-500 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="relative flex flex-col items-center space-y-6">
           {uploadStatus === 'processing' ? (
             <>
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="text-gray-600">Processing {fileName}...</p>
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-brand-200"></div>
+                <div className="absolute inset-0 animate-spin rounded-full h-16 w-16 border-4 border-brand-600 border-t-transparent"></div>
+              </div>
+              <div>
+                <p className="text-lg font-medium text-neutral-900">Processing {fileName}...</p>
+                <p className="text-sm text-neutral-500 mt-1">This may take a moment</p>
+              </div>
             </>
           ) : uploadStatus === 'error' ? (
             <>
-              <AlertCircle className="w-12 h-12 text-red-500" />
-              <p className="text-red-600 font-medium">{error}</p>
-              <p className="text-sm text-gray-600">Try uploading another file</p>
+              <div className="p-4 bg-red-100 rounded-2xl">
+                <AlertCircle className="w-12 h-12 text-red-600" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-red-900">{error}</p>
+                <p className="text-sm text-neutral-600 mt-1">Try uploading another file</p>
+              </div>
             </>
           ) : (
             <>
-              <Upload className="w-12 h-12 text-gray-400" />
+              <div className={`p-6 rounded-2xl transition-all duration-300 ${
+                isDragActive 
+                  ? 'bg-brand-100 scale-110' 
+                  : 'bg-gradient-to-br from-neutral-50 to-neutral-100 group-hover:from-brand-50 group-hover:to-brand-100'
+              }`}>
+                <Upload className={`w-16 h-16 transition-colors ${
+                  isDragActive ? 'text-brand-600' : 'text-neutral-400 group-hover:text-brand-500'
+                }`} />
+              </div>
               <div>
-                <p className="text-lg font-medium text-gray-900">
+                <p className="text-2xl font-bold text-neutral-900 mb-2">
                   {isDragActive ? 'Drop your file here' : 'Upload your data'}
                 </p>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-base text-neutral-600">
                   Drag and drop a CSV or Excel file, or click to browse
                 </p>
               </div>
-              <div className="flex items-center space-x-6 text-sm text-gray-500">
-                <div className="flex items-center space-x-2">
-                  <FileSpreadsheet className="w-4 h-4" />
-                  <span>CSV</span>
+              <div className="flex items-center justify-center space-x-8 pt-4">
+                <div className="flex items-center space-x-2 px-4 py-2 bg-neutral-100 rounded-full">
+                  <FileSpreadsheet className="w-5 h-5 text-brand-600" />
+                  <span className="text-sm font-medium text-neutral-700">CSV</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <FileSpreadsheet className="w-4 h-4" />
-                  <span>Excel</span>
+                <div className="flex items-center space-x-2 px-4 py-2 bg-neutral-100 rounded-full">
+                  <FileSpreadsheet className="w-5 h-5 text-brand-600" />
+                  <span className="text-sm font-medium text-neutral-700">Excel</span>
                 </div>
               </div>
             </>
@@ -163,7 +193,7 @@ export const DataUploader: React.FC<DataUploaderProps> = ({ onDataLoaded }) => {
       </div>
 
       {!uploadStatus && (
-        <div className="mt-4 text-center">
+        <div className="mt-6 text-center">
           <button
             onClick={() => {
               const demoData = [
@@ -177,9 +207,10 @@ export const DataUploader: React.FC<DataUploaderProps> = ({ onDataLoaded }) => {
               setUploadStatus('success');
               setFileName('demo-data.csv');
             }}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            className="text-brand-600 hover:text-brand-700 text-sm font-semibold 
+                     hover:underline underline-offset-4 transition-all"
           >
-            Or use demo data to get started
+            Need sample data? Click here to load demo dataset
           </button>
         </div>
       )}

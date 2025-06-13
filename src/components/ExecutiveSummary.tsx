@@ -13,26 +13,34 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ summary, con
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 85) return 'text-green-600';
-    if (confidence >= 70) return 'text-yellow-600';
-    return 'text-red-600';
+    if (confidence >= 85) return 'text-emerald-600 bg-emerald-100';
+    if (confidence >= 70) return 'text-amber-600 bg-amber-100';
+    return 'text-red-600 bg-red-100';
+  };
+
+  const getConfidenceLabel = (confidence: number) => {
+    if (confidence >= 85) return 'High Confidence';
+    if (confidence >= 70) return 'Medium Confidence';
+    return 'Low Confidence';
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Executive Summary</h3>
+    <div className="bg-gradient-to-br from-white to-neutral-50 rounded-2xl shadow-medium border border-neutral-100 p-8 hover-lift">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-gradient-to-br from-brand-100 to-brand-200 rounded-lg">
+            <Award className="w-6 h-6 text-brand-700" />
+          </div>
+          <h3 className="text-xl font-bold text-neutral-900">Executive Summary</h3>
+        </div>
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Award className="w-5 h-5 text-gray-500" />
-            <span className="text-sm text-gray-600">Confidence:</span>
-            <span className={`text-sm font-bold ${getConfidenceColor(confidence)}`}>
-              {confidence}%
-            </span>
+          <div className={`flex items-center space-x-2 px-4 py-2 rounded-full ${getConfidenceColor(confidence)}`}>
+            <span className="text-sm font-semibold">{getConfidenceLabel(confidence)}</span>
+            <span className="text-lg font-bold">{confidence}%</span>
           </div>
           <button
             onClick={handleExport}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="flex items-center space-x-2 btn-primary"
           >
             <FileDown className="w-4 h-4" />
             <span className="text-sm">Export to PowerPoint</span>
@@ -40,13 +48,13 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ summary, con
         </div>
       </div>
       
-      <ul className="space-y-3">
+      <ul className="space-y-4">
         {summary.map((point, index) => (
-          <li key={index} className="flex items-start space-x-3">
-            <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
+          <li key={index} className="flex items-start space-x-4 group">
+            <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-brand-500 to-brand-600 text-white rounded-lg flex items-center justify-center text-sm font-bold shadow-lg group-hover:scale-110 transition-transform">
               {index + 1}
             </span>
-            <p className="text-gray-700">{point}</p>
+            <p className="text-neutral-700 leading-relaxed pt-1">{point}</p>
           </li>
         ))}
       </ul>

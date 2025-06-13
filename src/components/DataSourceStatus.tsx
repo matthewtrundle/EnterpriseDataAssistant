@@ -32,16 +32,28 @@ export const DataSourceStatus: React.FC<DataSourceStatusProps> = ({ customFileNa
   ];
 
   return (
-    <div className="max-w-4xl mx-auto mb-6 px-6">
-      <div className="flex items-center space-x-4">
-        <span className="text-sm font-medium text-gray-600">Data Sources:</span>
-        <div className="flex space-x-4">
+    <div className="max-w-4xl mx-auto mb-6 px-6 animate-fade-in">
+      <div className="flex items-center justify-between bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-neutral-100 shadow-soft">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-gradient-to-br from-brand-100 to-brand-200 rounded-lg">
+            <Database className="w-5 h-5 text-brand-700" />
+          </div>
+          <span className="text-sm font-semibold text-neutral-700 uppercase tracking-wider">Connected Sources</span>
+        </div>
+        <div className="flex space-x-3">
           {dataSources.map((source) => (
-            <div key={source.name} className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm">
-              <source.icon className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-900">{source.name}</span>
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="text-xs text-gray-500">{source.lastSync}</span>
+            <div key={source.name} className="group flex items-center space-x-3 bg-gradient-to-r from-neutral-50 to-brand-50 px-5 py-2.5 rounded-xl border border-brand-200 hover:border-brand-300 hover:shadow-md transition-all">
+              <div className="flex items-center space-x-2">
+                <source.icon className="w-4 h-4 text-brand-600" />
+                <span className="text-sm font-semibold text-neutral-800">{source.name}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-75"></div>
+                  <CheckCircle className="relative w-4 h-4 text-emerald-500" />
+                </div>
+                <span className="text-xs text-neutral-500 font-medium">{source.lastSync}</span>
+              </div>
             </div>
           ))}
         </div>
