@@ -8,29 +8,29 @@ interface QueryInterfaceProps {
 
 const preBuiltQueries = [
   {
-    text: "What are my revenue trends this year?",
+    text: "What's driving our revenue growth and where are we leaving money on the table?",
     icon: TrendingUp,
-    description: "Analyze revenue patterns"
+    description: "Revenue optimization analysis"
   },
   {
-    text: "Which products are top sellers?",
+    text: "Which products should we double down on vs sunset based on profitability?",
     icon: BarChart,
-    description: "Product performance"
+    description: "Product portfolio strategy"
   },
   {
-    text: "Show me sales by region",
+    text: "What are the key performance differences across regions and what actions should we take?",
     icon: Map,
-    description: "Regional breakdown"
+    description: "Geographic expansion insights"
   },
   {
-    text: "Who are my top sales reps?",
+    text: "Which customer segments are most valuable and how can we grow them?",
     icon: Users,
-    description: "Team performance"
+    description: "Customer segmentation strategy"
   },
   {
-    text: "Compare Q4 to previous quarters",
+    text: "What seasonal patterns exist and how should we adjust our strategy?",
     icon: Calendar,
-    description: "Quarterly analysis"
+    description: "Temporal business intelligence"
   }
 ];
 

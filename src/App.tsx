@@ -26,6 +26,9 @@ function App() {
   };
 
   const handleQuery = async (query: string) => {
+    console.log('=== Starting query:', query);
+    console.log('=== Has uploaded data:', !!uploadedData, uploadedData?.length);
+    
     setIsLoading(true);
     setCurrentQuery(query);
     
@@ -35,11 +38,16 @@ function App() {
       if (uploadedData && uploadedData.length > 0) {
         // Use Claude for analysis if data is uploaded
         const schema = Object.keys(uploadedData[0] || {});
+        console.log('=== Schema:', schema);
+        console.log('=== Calling OpenRouter API...');
+        
         const analysisResult = await openRouterService.analyzeQuery({
           query,
           dataSchema: schema,
           sampleData: uploadedData
         });
+        
+        console.log('=== Analysis result:', analysisResult);
         
         result = {
           ...analysisResult,
@@ -102,21 +110,49 @@ function App() {
       const xKey = config.xKey || 'product_category';
       const yKey = config.yKey || 'revenue';
       
+      console.log(`Processing bar chart with xKey: ${xKey}, yKey: ${yKey}`);
+      
       const grouped = data.reduce((acc, item) => {
         const key = item[xKey] || 'Other';
-        if (!acc[key]) acc[key] = { [xKey]: key, [yKey]: 0, count: 0 };
-        acc[key][yKey] += typeof item[yKey] === 'number' ? item[yKey] : 0;
+        if (!acc[key]) {
+          acc[key] = { 
+            [xKey]: key, 
+            [yKey]: 0, 
+            count: 0,
+            total_revenue: 0,
+            total_quantity: 0 
+          };
+        }
+        
+        // Handle different possible y-axis values
+        if (yKey === 'revenue' || yKey === 'total_revenue') {
+          acc[key][yKey] += item.revenue || 0;
+          acc[key].total_revenue += item.revenue || 0;
+        } else if (yKey === 'quantity' || yKey === 'total_quantity') {
+          acc[key][yKey] += item.quantity || 0;
+          acc[key].total_quantity += item.quantity || 0;
+        } else if (yKey === 'profit') {
+          const revenue = item.revenue || 0;
+          const margin = item.profit_margin || 0;
+          acc[key][yKey] += revenue * margin;
+        } else {
+          acc[key][yKey] += typeof item[yKey] === 'number' ? item[yKey] : 0;
+        }
+        
         acc[key].count += 1;
         return acc;
       }, {});
       
-      return Object.values(grouped)
+      const result = Object.values(grouped)
         .map((item: any) => ({
           ...item,
           [yKey]: Math.round(item[yKey] * 100) / 100
         }))
         .sort((a: any, b: any) => b[yKey] - a[yKey])
-        .slice(0, 20);
+        .slice(0, 10); // Top 10 for cleaner visualization
+        
+      console.log('Bar chart data:', result);
+      return result;
     }
     
     // For line charts, ensure data is sorted by date

@@ -25,6 +25,10 @@ export class OpenRouterService {
 
   constructor() {
     this.apiKey = process.env.REACT_APP_OPENROUTER_API_KEY || null;
+    console.log('=== OpenRouter API Key loaded:', this.apiKey ? 'Yes' : 'No');
+    if (this.apiKey) {
+      console.log('=== API Key prefix:', this.apiKey.substring(0, 10) + '...');
+    }
   }
 
   async analyzeQuery(request: AnalysisRequest): Promise<AnalysisResponse> {
@@ -34,38 +38,58 @@ export class OpenRouterService {
     }
 
     try {
-      const prompt = `You are a data analyst assistant. Analyze this business question and provide insights.
+      const prompt = `You are a senior business analyst preparing insights for C-level executives. Analyze this data and provide strategic, actionable insights.
 
 User Query: "${request.query}"
 
 Data Schema:
 ${JSON.stringify(request.dataSchema, null, 2)}
 
-Sample Data (first 5 rows):
-${JSON.stringify(request.sampleData.slice(0, 5), null, 2)}
+Sample Data (first 10 rows):
+${JSON.stringify(request.sampleData.slice(0, 10), null, 2)}
 
-Please respond with a JSON object containing:
-1. sql: A SQL query that would answer the question
-2. visualization: An object with:
-   - type: One of 'line', 'bar', 'pie', 'scatter', 'table', 'heatmap'
-   - config: Configuration for the chart (xKey, yKey, etc.)
-3. insights: Array of insights with type ('positive', 'negative', 'neutral') and text
-4. summary: Array of 3-4 executive summary points
-5. confidence: A number 0-100 indicating confidence in the analysis
-6. slideHTML: Optional HTML for a presentation slide
+IMPORTANT: The data contains the following key columns:
+- revenue: monetary value
+- quantity: number of units
+- product_category/product_name: product information
+- region/country: geographic data
+- customer_segment: customer type
+- date: temporal data
+- profit_margin: profitability percentage
 
-Ensure the response is valid JSON only, no other text.`;
+Provide a JSON response with:
+1. sql: A proper SQL query that would answer the question
+2. visualization: {
+   type: 'bar' or 'line' or 'pie',
+   config: {
+     xKey: 'the column name for x-axis (e.g., "product_name")',
+     yKey: 'the column name for y-axis (e.g., "revenue")'
+   }
+}
+3. insights: Array of 3-5 STRATEGIC insights. Each insight should:
+   - Be specific with numbers and percentages
+   - Identify trends, anomalies, or opportunities
+   - Provide business context (e.g., "Q4 revenue of $2.3M represents 35% YoY growth")
+   - type: 'positive' for good news, 'negative' for concerns, 'neutral' for observations
+4. summary: Array of 3-4 executive summary points that:
+   - Start with the bottom line (e.g., "Revenue grew 23% to $12.4M")
+   - Include specific metrics and comparisons
+   - Highlight strategic implications
+   - Suggest concrete next steps
+5. confidence: 85-95 (be confident in your analysis)
+
+Return ONLY valid JSON, no other text.`;
 
       const response = await fetch(this.baseURL, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Enterprise Data Assistant'
+          'HTTP-Referer': window.location.origin || 'http://localhost:3000',
+          'X-Title': 'Enterprise Data AI Agent'
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-3-sonnet',
+          model: 'openai/gpt-3.5-turbo',
           messages: [{
             role: 'user',
             content: prompt
@@ -76,7 +100,18 @@ Ensure the response is valid JSON only, no other text.`;
       });
 
       if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('OpenRouter API error details:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        
+        if (response.status === 401) {
+          throw new Error('Invalid API key. Please check your OpenRouter API key.');
+        }
+        
+        throw new Error(`OpenRouter API error: ${response.statusText} - ${JSON.stringify(errorData)}`);
       }
 
       const data = await response.json();
@@ -102,11 +137,7 @@ Ensure the response is valid JSON only, no other text.`;
               text: 'Analysis completed successfully'
             }],
             summary: parsed.summary || ['Data analyzed', 'Results generated'],
-            confidence: parsed.confidence || 85,
-            slideHTML: parsed.slideHTML || this.generateSlideHTML(
-              request.query,
-              parsed.insights?.[0]?.text || 'Data Analysis Complete'
-            )
+            confidence: parsed.confidence || 85
           };
           
           return result;
