@@ -60,22 +60,19 @@ IMPORTANT: The data contains the following key columns:
 Provide a JSON response with:
 1. sql: A proper SQL query that would answer the question
 2. visualization: {
-   type: 'bar' or 'line' or 'pie',
+   type: Choose 'bar' for categories/comparisons, 'line' for time trends, 'pie' for proportions,
    config: {
-     xKey: 'the column name for x-axis (e.g., "product_name")',
-     yKey: 'the column name for y-axis (e.g., "revenue")'
+     xKey: EXACT column name for x-axis from the data (for products use 'product_name' or 'product_category', for time use 'date', for regions use 'region'),
+     yKey: EXACT column name for y-axis (usually 'revenue' or 'quantity' or 'profit')
    }
 }
-3. insights: Array of 3-5 STRATEGIC insights. Each insight should:
-   - Be specific with numbers and percentages
-   - Identify trends, anomalies, or opportunities
-   - Provide business context (e.g., "Q4 revenue of $2.3M represents 35% YoY growth")
-   - type: 'positive' for good news, 'negative' for concerns, 'neutral' for observations
-4. summary: Array of 3-4 executive summary points that:
-   - Start with the bottom line (e.g., "Revenue grew 23% to $12.4M")
-   - Include specific metrics and comparisons
-   - Highlight strategic implications
-   - Suggest concrete next steps
+3. insights: Array of 3-5 objects, each with:
+   - type: 'positive' or 'negative' or 'neutral'
+   - text: A string with the insight (e.g., "Q4 revenue of $2.3M represents 35% YoY growth, driven by Enterprise segment expansion")
+4. summary: Array of 3-4 STRINGS (not objects), each being a complete sentence like:
+   - "Total revenue reached $12.4M, up 23% YoY with Technology products leading growth"
+   - "North America region accounts for 45% of revenue but shows signs of saturation"
+   - "Recommend focusing on Asia Pacific expansion where we see 40% QoQ growth"
 5. confidence: 85-95 (be confident in your analysis)
 
 Return ONLY valid JSON, no other text.`;
@@ -125,18 +122,61 @@ Return ONLY valid JSON, no other text.`;
           const parsed = JSON.parse(content);
           console.log('Parsed response:', parsed);
           
-          // Ensure we have the required structure
+          // Ensure we have the required structure and normalize insights
+          const normalizedInsights = (parsed.insights || []).map((insight: any) => {
+            // Handle different insight formats from AI
+            if (typeof insight === 'string') {
+              return { type: 'neutral', text: insight };
+            } else if (insight.content && insight.type) {
+              return { type: insight.type, text: insight.content };
+            } else if (insight.text && insight.type) {
+              return insight;
+            } else {
+              return { type: 'neutral', text: JSON.stringify(insight) };
+            }
+          });
+          
+          // Validate and fix visualization config
+          let visualization = parsed.visualization || {
+            type: 'bar',
+            config: { xKey: 'product_category', yKey: 'revenue' }
+          };
+          
+          // If the query is about products, ensure we're not using date as xKey
+          if (request.query.toLowerCase().includes('product') && 
+              visualization.config?.xKey === 'date') {
+            visualization.config.xKey = 'product_name';
+            visualization.type = 'bar';
+          }
+          
+          // If the query is about time/trends, use line chart
+          if ((request.query.toLowerCase().includes('trend') || 
+               request.query.toLowerCase().includes('over time') ||
+               request.query.toLowerCase().includes('monthly')) && 
+              visualization.type !== 'line') {
+            visualization.type = 'line';
+            visualization.config.xKey = 'date';
+          }
+          
           const result = {
             sql: parsed.sql || `SELECT * FROM sales_data WHERE query = '${request.query}'`,
-            visualization: parsed.visualization || {
-              type: 'bar',
-              config: { xKey: 'product_category', yKey: 'revenue' }
-            },
-            insights: parsed.insights || [{
+            visualization,
+            insights: normalizedInsights.length > 0 ? normalizedInsights : [{
               type: 'neutral',
               text: 'Analysis completed successfully'
             }],
-            summary: parsed.summary || ['Data analyzed', 'Results generated'],
+            summary: Array.isArray(parsed.summary) ? parsed.summary.map((item: any) => {
+              // Handle different summary formats
+              if (typeof item === 'string') {
+                return item;
+              } else if (item.text) {
+                return item.text;
+              } else if (item.metric && item.strategic_implication) {
+                return `${item.metric} - ${item.strategic_implication}`;
+              } else {
+                return JSON.stringify(item);
+              }
+            }) : ['Data analyzed', 'Results generated'],
             confidence: parsed.confidence || 85
           };
           
