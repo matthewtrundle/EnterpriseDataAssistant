@@ -62,8 +62,9 @@ Provide a JSON response with:
 2. visualization: {
    type: Choose 'bar' for categories/comparisons, 'line' for time trends, 'pie' for proportions,
    config: {
-     xKey: EXACT column name for x-axis from the data (for products use 'product_name' or 'product_category', for time use 'date', for regions use 'region'),
-     yKey: EXACT column name for y-axis (usually 'revenue' or 'quantity' or 'profit')
+     xKey: EXACT column name for x-axis from the RAW data (e.g., 'product_name', 'product_category', 'region', 'date'),
+     yKey: For aggregated values use: 'total_revenue', 'avg_revenue', 'total_quantity', 'avg_quantity', 'avg_profit_margin'
+          For raw values use: 'revenue', 'quantity', 'profit_margin'
    }
 }
 3. insights: Array of 3-5 objects, each with:

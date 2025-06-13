@@ -125,28 +125,46 @@ function App() {
         }
         
         // Handle different possible y-axis values
-        if (yKey === 'revenue' || yKey === 'total_revenue') {
-          acc[key][yKey] += item.revenue || 0;
-          acc[key].total_revenue += item.revenue || 0;
-        } else if (yKey === 'quantity' || yKey === 'total_quantity') {
-          acc[key][yKey] += item.quantity || 0;
-          acc[key].total_quantity += item.quantity || 0;
-        } else if (yKey === 'profit') {
+        if (yKey === 'revenue' || yKey === 'total_revenue' || yKey === 'avg_revenue') {
+          acc[key].revenue = (acc[key].revenue || 0) + (item.revenue || 0);
+          acc[key].total_revenue = (acc[key].total_revenue || 0) + (item.revenue || 0);
+          acc[key].count += 1;
+          // Calculate average
+          acc[key].avg_revenue = acc[key].total_revenue / acc[key].count;
+        } else if (yKey === 'quantity' || yKey === 'total_quantity' || yKey === 'avg_quantity') {
+          acc[key].quantity = (acc[key].quantity || 0) + (item.quantity || 0);
+          acc[key].total_quantity = (acc[key].total_quantity || 0) + (item.quantity || 0);
+          acc[key].count += 1;
+          // Calculate average
+          acc[key].avg_quantity = acc[key].total_quantity / acc[key].count;
+        } else if (yKey === 'profit' || yKey === 'avg_profit_margin') {
           const revenue = item.revenue || 0;
           const margin = item.profit_margin || 0;
-          acc[key][yKey] += revenue * margin;
+          acc[key].profit = (acc[key].profit || 0) + (revenue * margin);
+          acc[key].total_profit_margin = (acc[key].total_profit_margin || 0) + margin;
+          acc[key].count += 1;
+          // Calculate average profit margin
+          acc[key].avg_profit_margin = acc[key].total_profit_margin / acc[key].count;
         } else {
-          acc[key][yKey] += typeof item[yKey] === 'number' ? item[yKey] : 0;
+          acc[key][yKey] = (acc[key][yKey] || 0) + (typeof item[yKey] === 'number' ? item[yKey] : 0);
+          acc[key].count += 1;
         }
-        
-        acc[key].count += 1;
         return acc;
       }, {});
       
       const result = Object.values(grouped)
         .map((item: any) => ({
           ...item,
-          [yKey]: Math.round(item[yKey] * 100) / 100
+          // Ensure all possible y-axis values are present
+          revenue: item.revenue || 0,
+          total_revenue: item.total_revenue || item.revenue || 0,
+          avg_revenue: item.avg_revenue || item.revenue || 0,
+          quantity: item.quantity || 0,
+          total_quantity: item.total_quantity || item.quantity || 0,
+          avg_quantity: item.avg_quantity || item.quantity || 0,
+          avg_profit_margin: item.avg_profit_margin || 0,
+          // Round the specific yKey value
+          [yKey]: Math.round((item[yKey] || 0) * 100) / 100
         }))
         .sort((a: any, b: any) => b[yKey] - a[yKey])
         .slice(0, 10); // Top 10 for cleaner visualization
