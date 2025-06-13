@@ -19,7 +19,7 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
   const [agents, setAgents] = useState<Agent[]>([
     {
       id: 'analyst',
-      name: 'Data Analyst AI',
+      name: 'DATA ANALYST AI AGENT',
       role: 'Analyzing query & patterns',
       icon: Brain,
       status: 'waiting',
@@ -27,7 +27,7 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
     },
     {
       id: 'engineer',
-      name: 'Data Engineer AI',
+      name: 'DATA ENGINEER AI AGENT',
       role: 'Processing & aggregating data',
       icon: Database,
       status: 'waiting',
@@ -35,7 +35,7 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
     },
     {
       id: 'designer',
-      name: 'UX Designer AI',
+      name: 'UX DESIGNER AI AGENT',
       role: 'Creating visualizations',
       icon: Palette,
       status: 'waiting',
@@ -43,17 +43,17 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
     }
   ]);
 
+  const [hasCompleted, setHasCompleted] = useState(false);
+
   useEffect(() => {
-    if (!isActive) {
-      // Reset all agents to waiting
-      setAgents(prev => prev.map(agent => ({ ...agent, status: 'waiting' })));
+    if (!isActive || hasCompleted) {
       return;
     }
 
     // Simulate agents working in sequence
     const timers: NodeJS.Timeout[] = [];
 
-    // Data Analyst starts immediately
+    // Data Analyst AI starts immediately
     timers.push(setTimeout(() => {
       setAgents(prev => prev.map(agent => 
         agent.id === 'analyst' 
@@ -62,7 +62,7 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
       ));
     }, 100));
 
-    // Data Analyst completes, Engineer starts
+    // Data Analyst AI completes, Engineer AI starts
     timers.push(setTimeout(() => {
       setAgents(prev => prev.map(agent => {
         if (agent.id === 'analyst') return { ...agent, status: 'completed', message: 'Query analysis complete!' };
@@ -71,7 +71,7 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
       }));
     }, 800));
 
-    // Engineer progresses
+    // Engineer AI progresses
     timers.push(setTimeout(() => {
       setAgents(prev => prev.map(agent => 
         agent.id === 'engineer' 
@@ -80,7 +80,7 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
       ));
     }, 1200));
 
-    // Engineer completes, Designer starts
+    // Engineer AI completes, Designer AI starts
     timers.push(setTimeout(() => {
       setAgents(prev => prev.map(agent => {
         if (agent.id === 'engineer') return { ...agent, status: 'completed', message: 'Data pipeline ready!' };
@@ -89,7 +89,7 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
       }));
     }, 1600));
 
-    // Designer progresses
+    // Designer AI progresses
     timers.push(setTimeout(() => {
       setAgents(prev => prev.map(agent => 
         agent.id === 'designer' 
@@ -105,13 +105,14 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
           ? { ...agent, status: 'completed', message: 'Visualization ready!' }
           : agent
       ));
+      setHasCompleted(true);
       onComplete?.();
     }, 2400));
 
     return () => {
       timers.forEach(timer => clearTimeout(timer));
     };
-  }, [isActive, onComplete]);
+  }, [isActive, hasCompleted, onComplete]);
 
   if (!isActive) return null;
 
@@ -124,14 +125,14 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
           <div className="relative">
             <h3 className="text-2xl font-bold mb-2 flex items-center">
               <span className="mr-3">🤖</span>
-              AI Agent Collaboration
+              AI AGENTS COLLABORATING
               <div className="ml-3 flex space-x-1">
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse animation-delay-200"></div>
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse animation-delay-400"></div>
               </div>
             </h3>
-            <p className="text-brand-100">Multiple specialized AIs working together to deliver insights</p>
+            <p className="text-brand-100">Multiple specialized AI AGENTS working together to deliver executive insights</p>
           </div>
         </div>
 
@@ -228,7 +229,7 @@ export const AIAgentProgress: React.FC<AIAgentProgressProps> = ({ isActive, onCo
             />
           </div>
           <p className="text-center text-sm text-gray-600 mt-2">
-            {agents.filter(a => a.status === 'completed').length} of {agents.length} agents completed
+            {agents.filter(a => a.status === 'completed').length} of {agents.length} AI AGENTS completed
           </p>
         </div>
       </div>

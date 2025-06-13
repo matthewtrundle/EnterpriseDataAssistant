@@ -25,8 +25,8 @@ export const AIAgentStatus: React.FC = () => {
             </div>
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">3 AI Agents Active</p>
-            <p className="text-xs text-gray-500">Ready to analyze</p>
+            <p className="text-sm font-semibold text-gray-900">3 AI AGENTS ACTIVE</p>
+            <p className="text-xs text-gray-500">Ready to analyze your data</p>
           </div>
         </div>
       </div>

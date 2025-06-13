@@ -197,7 +197,7 @@ function App() {
               <div className="flex items-center justify-center space-x-8 text-sm text-neutral-500">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span>3 AI Agents Active</span>
+                  <span>3 AI AGENTS ACTIVE</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-brand-500 rounded-full animate-pulse"></div>
