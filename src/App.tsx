@@ -4,6 +4,7 @@ import { DataSourceStatus } from './components/DataSourceStatus';
 import { QueryResults } from './components/QueryResults';
 import { DataUploader } from './components/DataUploader';
 import { DataPreview } from './components/DataPreview';
+import { DemoDataOption } from './components/DemoDataOption';
 import { processQuery } from './services/queryProcessor';
 import { OpenRouterService } from './services/openRouterService';
 import { QueryResult } from './types/query';
@@ -15,6 +16,7 @@ function App() {
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
   const [uploadedData, setUploadedData] = useState<any[] | null>(null);
   const [dataFileName, setDataFileName] = useState<string>('');
+  const [useDemo, setUseDemo] = useState(false);
   const openRouterService = new OpenRouterService();
 
   const handleDataLoaded = (data: any[], fileName: string) => {
@@ -94,10 +96,14 @@ function App() {
         {!hasData ? (
           <>
             <div className="max-w-4xl mx-auto mb-8 text-center">
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">Enterprise Data Assistant</h1>
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">Enterprise Data AI Agent</h1>
               <p className="text-xl text-gray-600">
-                Upload your data or use our demo dataset to get started
+                Transform your data into insights with AI-powered analysis
               </p>
+            </div>
+            <DemoDataOption onDemoSelect={handleDataLoaded} />
+            <div className="max-w-4xl mx-auto text-center mb-4">
+              <p className="text-sm text-gray-500">— OR —</p>
             </div>
             <DataUploader onDataLoaded={handleDataLoaded} />
           </>

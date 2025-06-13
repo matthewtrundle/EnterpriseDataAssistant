@@ -1,4 +1,4 @@
-# Enterprise Data Assistant - AI-Powered Business Intelligence
+# Enterprise Data AI Agent - AI-Powered Business Intelligence
 
 A powerful demo showcasing how AI can transform business data analysis. Upload any CSV/Excel file and ask questions in plain English to get instant visualizations, insights, and presentation-ready slides.
 

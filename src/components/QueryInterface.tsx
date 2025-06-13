@@ -8,29 +8,29 @@ interface QueryInterfaceProps {
 
 const preBuiltQueries = [
   {
-    text: "Why did revenue drop last month?",
+    text: "What are my revenue trends this year?",
     icon: TrendingUp,
-    description: "Analyze revenue trends"
+    description: "Analyze revenue patterns"
   },
   {
-    text: "Which customers are at risk of churning?",
-    icon: Users,
-    description: "Identify at-risk customers"
-  },
-  {
-    text: "What's our best performing product feature?",
+    text: "Which products are top sellers?",
     icon: BarChart,
-    description: "Feature usage analysis"
-  },
-  {
-    text: "Compare this quarter to last quarter",
-    icon: Calendar,
-    description: "Quarter-over-quarter analysis"
+    description: "Product performance"
   },
   {
     text: "Show me sales by region",
     icon: Map,
-    description: "Regional performance"
+    description: "Regional breakdown"
+  },
+  {
+    text: "Who are my top sales reps?",
+    icon: Users,
+    description: "Team performance"
+  },
+  {
+    text: "Compare Q4 to previous quarters",
+    icon: Calendar,
+    description: "Quarterly analysis"
   }
 ];
 
@@ -52,7 +52,7 @@ export const QueryInterface: React.FC<QueryInterfaceProps> = ({ onQuery, isLoadi
   return (
     <div className="w-full max-w-4xl mx-auto p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Enterprise Data Assistant</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Enterprise Data AI Agent</h1>
         <p className="text-gray-600">Ask questions about your business data in plain English</p>
       </div>
 
