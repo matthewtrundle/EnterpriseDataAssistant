@@ -97,10 +97,12 @@ export const QueryInterface: React.FC<QueryInterfaceProps> = ({ onQuery, isLoadi
               key={index}
               onClick={() => handlePreBuiltQuery(preBuilt.text)}
               disabled={isLoading}
+              style={{ animationDelay: `${index * 100}ms` }}
               className="group relative bg-white rounded-xl p-5 border border-neutral-200 
-                       hover:border-brand-300 hover:shadow-lg hover:-translate-y-0.5
-                       transition-all duration-200 text-left overflow-hidden
-                       disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
+                       hover:border-brand-300 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02]
+                       transition-all duration-300 text-left overflow-hidden
+                       disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none
+                       animate-fade-in opacity-0 [animation-fill-mode:forwards]"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-brand-50 to-accent-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="relative flex items-start">

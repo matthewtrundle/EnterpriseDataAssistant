@@ -38,45 +38,67 @@ export class OpenRouterService {
     }
 
     try {
+      // Analyze the data structure first
+      const sampleItem = request.sampleData[0] || {};
+      const actualColumns = Object.keys(sampleItem);
+      const numericColumns = actualColumns.filter(col => 
+        typeof sampleItem[col] === 'number' || !isNaN(parseFloat(sampleItem[col]))
+      );
+      const stringColumns = actualColumns.filter(col => 
+        typeof sampleItem[col] === 'string' && isNaN(parseFloat(sampleItem[col]))
+      );
+      const dateColumns = actualColumns.filter(col => {
+        const val = sampleItem[col];
+        return typeof val === 'string' && !isNaN(Date.parse(val)) && val.includes('-');
+      });
+
       const prompt = `You are a senior business analyst preparing insights for C-level executives. Analyze this data and provide strategic, actionable insights.
 
 User Query: "${request.query}"
 
-Data Schema:
-${JSON.stringify(request.dataSchema, null, 2)}
+ACTUAL Data Columns Available:
+- Numeric columns: ${numericColumns.join(', ')}
+- Text columns: ${stringColumns.join(', ')}
+- Date columns: ${dateColumns.join(', ')}
 
-Sample Data (first 10 rows):
-${JSON.stringify(request.sampleData.slice(0, 10), null, 2)}
+Sample Data (first 5 rows):
+${JSON.stringify(request.sampleData.slice(0, 5), null, 2)}
 
-IMPORTANT: The data contains the following key columns:
-- revenue: monetary value
-- quantity: number of units
-- product_category/product_name: product information
-- region/country: geographic data
-- customer_segment: customer type
-- date: temporal data
-- profit_margin: profitability percentage
+CRITICAL INSTRUCTIONS:
+1. Use ONLY the column names that actually exist in the data above
+2. For chart visualization, use EXACT column names from the data
+3. Do NOT invent column names like 'total_revenue' or 'avg_revenue' unless you see them in the actual data
+4. For aggregations, use the RAW column names (e.g., 'revenue' not 'total_revenue')
 
 Provide a JSON response with:
-1. sql: A proper SQL query that would answer the question
+1. sql: A SQL query using the actual column names
 2. visualization: {
-   type: Choose 'bar' for categories/comparisons, 'line' for time trends, 'pie' for proportions,
+   type: Choose based on query:
+     - 'bar' for comparing categories (products, regions, segments)
+     - 'line' for time-based trends (requires date column)
+     - 'pie' for showing proportions (max 8 categories)
+     - 'table' for detailed data
    config: {
-     xKey: EXACT column name for x-axis from the RAW data (e.g., 'product_name', 'product_category', 'region', 'date'),
-     yKey: For aggregated values use: 'total_revenue', 'avg_revenue', 'total_quantity', 'avg_quantity', 'avg_profit_margin'
-          For raw values use: 'revenue', 'quantity', 'profit_margin'
+     xKey: MUST be an actual column name from the data
+     yKey: MUST be an actual column name from the data (we will handle aggregation)
+     // For pie charts:
+     nameKey: actual column for categories
+     valueKey: actual numeric column
    }
 }
-3. insights: Array of 3-5 objects, each with:
-   - type: 'positive' or 'negative' or 'neutral'
-   - text: A string with the insight (e.g., "Q4 revenue of $2.3M represents 35% YoY growth, driven by Enterprise segment expansion")
-4. summary: Array of 3-4 STRINGS (not objects), each being a complete sentence like:
-   - "Total revenue reached $12.4M, up 23% YoY with Technology products leading growth"
-   - "North America region accounts for 45% of revenue but shows signs of saturation"
-   - "Recommend focusing on Asia Pacific expansion where we see 40% QoQ growth"
-5. confidence: 85-95 (be confident in your analysis)
+3. insights: Array of 3-5 insight objects with 'type' and 'text' fields
+4. summary: Array of 3-4 complete sentences (strings only)
+5. confidence: 85-95
 
-Return ONLY valid JSON, no other text.`;
+Query Analysis Hints:
+- If query mentions "trend" or "over time" → use 'line' chart with date on x-axis
+- If query mentions "by product/region/segment" → use 'bar' chart with that category on x-axis
+- If query mentions "breakdown" or "distribution" → consider 'pie' chart
+- For revenue queries → use 'revenue' column
+- For quantity queries → use 'quantity' column
+- For profit queries → use 'profit_margin' column
+
+Return ONLY valid JSON.`;
 
       const response = await fetch(this.baseURL, {
         method: 'POST',
@@ -143,20 +165,51 @@ Return ONLY valid JSON, no other text.`;
             config: { xKey: 'product_category', yKey: 'revenue' }
           };
           
-          // If the query is about products, ensure we're not using date as xKey
-          if (request.query.toLowerCase().includes('product') && 
-              visualization.config?.xKey === 'date') {
-            visualization.config.xKey = 'product_name';
-            visualization.type = 'bar';
+          // CRITICAL: Validate that the suggested keys exist in the actual data
+          const sampleItem = request.sampleData[0] || {};
+          const availableColumns = Object.keys(sampleItem);
+          
+          // Fix xKey if it doesn't exist
+          if (visualization.config?.xKey && !availableColumns.includes(visualization.config.xKey)) {
+            console.warn(`xKey '${visualization.config.xKey}' not found in data. Available columns:`, availableColumns);
+            // Smart fallback
+            if (visualization.type === 'line') {
+              visualization.config.xKey = availableColumns.find(col => col.includes('date')) || availableColumns[0];
+            } else {
+              visualization.config.xKey = availableColumns.find(col => 
+                col.includes('category') || col.includes('name') || col.includes('region')
+              ) || availableColumns[0];
+            }
           }
           
-          // If the query is about time/trends, use line chart
-          if ((request.query.toLowerCase().includes('trend') || 
-               request.query.toLowerCase().includes('over time') ||
-               request.query.toLowerCase().includes('monthly')) && 
-              visualization.type !== 'line') {
+          // Fix yKey if it doesn't exist
+          if (visualization.config?.yKey && !availableColumns.includes(visualization.config.yKey)) {
+            console.warn(`yKey '${visualization.config.yKey}' not found in data.`);
+            // Remove aggregation prefixes and try to find the base field
+            const baseField = visualization.config.yKey
+              .replace(/^(total_|avg_|sum_|average_|count_)/, '');
+            
+            if (availableColumns.includes(baseField)) {
+              visualization.config.yKey = baseField;
+            } else {
+              // Find any numeric field
+              const numericField = availableColumns.find(col => 
+                typeof sampleItem[col] === 'number' || !isNaN(parseFloat(sampleItem[col]))
+              );
+              visualization.config.yKey = numericField || 'value';
+            }
+          }
+          
+          // Query-based chart type validation
+          const query = request.query.toLowerCase();
+          if ((query.includes('trend') || query.includes('over time') || query.includes('monthly')) && 
+              availableColumns.some(col => col.includes('date'))) {
             visualization.type = 'line';
-            visualization.config.xKey = 'date';
+            visualization.config.xKey = availableColumns.find(col => col.includes('date')) || visualization.config.xKey;
+          } else if (query.includes('breakdown') || query.includes('distribution')) {
+            visualization.type = 'pie';
+            visualization.config.nameKey = visualization.config.xKey;
+            visualization.config.valueKey = visualization.config.yKey;
           }
           
           const result = {

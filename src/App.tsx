@@ -5,10 +5,14 @@ import { QueryResults } from './components/QueryResults';
 import { DataUploader } from './components/DataUploader';
 import { DataPreview } from './components/DataPreview';
 import { DemoDataOption } from './components/DemoDataOption';
+import { AIAgentProgress } from './components/AIAgentProgress';
+import { AIAgentStatus } from './components/AIAgentStatus';
 import { processQuery } from './services/queryProcessor';
 import { OpenRouterService } from './services/openRouterService';
 import { QueryResult } from './types/query';
 import { getMockData } from './data/mockDataStore';
+import { DataValidator } from './services/dataValidator';
+import { DataAggregator } from './services/dataAggregator';
 
 function App() {
   const [isLoading, setIsLoading] = useState(false);
@@ -17,6 +21,7 @@ function App() {
   const [uploadedData, setUploadedData] = useState<any[] | null>(null);
   const [dataFileName, setDataFileName] = useState<string>('');
   const [useDemo, setUseDemo] = useState(false);
+  const [showAgents, setShowAgents] = useState(false);
   const openRouterService = new OpenRouterService();
 
   const handleDataLoaded = (data: any[], fileName: string) => {
@@ -31,6 +36,10 @@ function App() {
     
     setIsLoading(true);
     setCurrentQuery(query);
+    setShowAgents(true);
+    
+    // Wait for agent animation to start
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     try {
       let result: QueryResult;
@@ -49,15 +58,44 @@ function App() {
         
         console.log('=== Analysis result:', analysisResult);
         
+        // First validate the chart configuration
+        const chartConfig = {
+          type: analysisResult.visualization?.type || 'bar',
+          data: [],
+          xKey: analysisResult.visualization?.config?.xKey,
+          yKey: analysisResult.visualization?.config?.yKey,
+          nameKey: analysisResult.visualization?.config?.nameKey,
+          valueKey: analysisResult.visualization?.config?.valueKey
+        };
+        
+        const validationResult = DataValidator.validateChartData(
+          chartConfig,
+          uploadedData,
+          query
+        );
+        
+        const correctedChart = validationResult.correctedChart || chartConfig;
+        
+        // Process data with corrected configuration
+        const processedData = processDataForVisualization(uploadedData, {
+          type: correctedChart.type,
+          config: {
+            xKey: correctedChart.xKey,
+            yKey: correctedChart.yKey,
+            nameKey: correctedChart.nameKey,
+            valueKey: correctedChart.valueKey
+          }
+        });
+        
         result = {
           ...analysisResult,
           chart: {
-            type: analysisResult.visualization?.type || 'bar',
-            data: processDataForVisualization(uploadedData, analysisResult.visualization),
-            xKey: analysisResult.visualization?.config?.xKey,
-            yKey: analysisResult.visualization?.config?.yKey,
-            nameKey: analysisResult.visualization?.config?.nameKey,
-            valueKey: analysisResult.visualization?.config?.valueKey
+            type: correctedChart.type,
+            data: processedData,
+            xKey: correctedChart.xKey,
+            yKey: correctedChart.yKey,
+            nameKey: correctedChart.nameKey,
+            valueKey: correctedChart.valueKey
           }
         };
       } else {
@@ -77,7 +115,10 @@ function App() {
         confidence: 0
       });
     } finally {
+      // Wait for agents to complete their animation
+      await new Promise(resolve => setTimeout(resolve, 2500));
       setIsLoading(false);
+      setShowAgents(false);
     }
   };
 
@@ -87,120 +128,35 @@ function App() {
     
     console.log('Processing data for visualization:', { type, config, sampleData: data.slice(0, 3) });
     
-    // For pie charts, group by category
-    if (type === 'pie') {
-      const groupField = config.groupBy || config.nameKey || 'product_category';
-      const valueField = config.valueKey || 'revenue';
-      
-      const grouped = data.reduce((acc, item) => {
-        const key = item[groupField] || 'Other';
-        if (!acc[key]) acc[key] = 0;
-        acc[key] += typeof item[valueField] === 'number' ? item[valueField] : 1;
-        return acc;
-      }, {});
-      
-      return Object.entries(grouped)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => (b.value as number) - (a.value as number))
-        .slice(0, 10); // Top 10 for pie charts
-    }
+    // Validate chart configuration against actual data
+    const validationResult = DataValidator.validateChartData(
+      {
+        type,
+        data: [],
+        xKey: config.xKey,
+        yKey: config.yKey,
+        nameKey: config.nameKey,
+        valueKey: config.valueKey
+      },
+      data,
+      currentQuery
+    );
     
-    // For bar charts, aggregate by x-axis
-    if (type === 'bar') {
-      const xKey = config.xKey || 'product_category';
-      const yKey = config.yKey || 'revenue';
-      
-      console.log(`Processing bar chart with xKey: ${xKey}, yKey: ${yKey}`);
-      
-      const grouped = data.reduce((acc, item) => {
-        const key = item[xKey] || 'Other';
-        if (!acc[key]) {
-          acc[key] = { 
-            [xKey]: key, 
-            [yKey]: 0, 
-            count: 0,
-            total_revenue: 0,
-            total_quantity: 0 
-          };
-        }
-        
-        // Handle different possible y-axis values
-        if (yKey === 'revenue' || yKey === 'total_revenue' || yKey === 'avg_revenue') {
-          acc[key].revenue = (acc[key].revenue || 0) + (item.revenue || 0);
-          acc[key].total_revenue = (acc[key].total_revenue || 0) + (item.revenue || 0);
-          acc[key].count += 1;
-          // Calculate average
-          acc[key].avg_revenue = acc[key].total_revenue / acc[key].count;
-        } else if (yKey === 'quantity' || yKey === 'total_quantity' || yKey === 'avg_quantity') {
-          acc[key].quantity = (acc[key].quantity || 0) + (item.quantity || 0);
-          acc[key].total_quantity = (acc[key].total_quantity || 0) + (item.quantity || 0);
-          acc[key].count += 1;
-          // Calculate average
-          acc[key].avg_quantity = acc[key].total_quantity / acc[key].count;
-        } else if (yKey === 'profit' || yKey === 'avg_profit_margin') {
-          const revenue = item.revenue || 0;
-          const margin = item.profit_margin || 0;
-          acc[key].profit = (acc[key].profit || 0) + (revenue * margin);
-          acc[key].total_profit_margin = (acc[key].total_profit_margin || 0) + margin;
-          acc[key].count += 1;
-          // Calculate average profit margin
-          acc[key].avg_profit_margin = acc[key].total_profit_margin / acc[key].count;
-        } else {
-          acc[key][yKey] = (acc[key][yKey] || 0) + (typeof item[yKey] === 'number' ? item[yKey] : 0);
-          acc[key].count += 1;
-        }
-        return acc;
-      }, {});
-      
-      const result = Object.values(grouped)
-        .map((item: any) => ({
-          ...item,
-          // Ensure all possible y-axis values are present
-          revenue: item.revenue || 0,
-          total_revenue: item.total_revenue || item.revenue || 0,
-          avg_revenue: item.avg_revenue || item.revenue || 0,
-          quantity: item.quantity || 0,
-          total_quantity: item.total_quantity || item.quantity || 0,
-          avg_quantity: item.avg_quantity || item.quantity || 0,
-          avg_profit_margin: item.avg_profit_margin || 0,
-          // Round the specific yKey value
-          [yKey]: Math.round((item[yKey] || 0) * 100) / 100
-        }))
-        .sort((a: any, b: any) => b[yKey] - a[yKey])
-        .slice(0, 10); // Top 10 for cleaner visualization
-        
-      console.log('Bar chart data:', result);
-      return result;
-    }
+    // Use corrected chart config if validation found issues
+    const correctedConfig = validationResult.correctedChart || { type, ...config };
+    console.log('Corrected config:', correctedConfig);
     
-    // For line charts, ensure data is sorted by date
-    if (type === 'line') {
-      const xKey = config.xKey || 'date';
-      const yKey = config.yKey || 'revenue';
-      
-      // Aggregate by date if needed
-      const grouped = data.reduce((acc, item) => {
-        const key = item[xKey];
-        if (!acc[key]) acc[key] = { [xKey]: key, [yKey]: 0, count: 0 };
-        acc[key][yKey] += typeof item[yKey] === 'number' ? item[yKey] : 0;
-        acc[key].count += 1;
-        return acc;
-      }, {});
-      
-      return Object.values(grouped)
-        .map((item: any) => ({
-          ...item,
-          [yKey]: Math.round(item[yKey] * 100) / 100
-        }))
-        .sort((a: any, b: any) => {
-          if (a[xKey] < b[xKey]) return -1;
-          if (a[xKey] > b[xKey]) return 1;
-          return 0;
-        });
-    }
+    // Use DataAggregator for consistent data preparation
+    const preparedData = DataAggregator.prepareForChart(
+      data,
+      correctedConfig.type as any,
+      correctedConfig.xKey || config.xKey || 'category',
+      correctedConfig.yKey || config.yKey || 'value',
+      currentQuery
+    );
     
-    // For tables and other types, return top rows
-    return data.slice(0, 50);
+    console.log('Prepared data:', preparedData.slice(0, 5));
+    return preparedData;
   };
 
   const hasData = uploadedData && uploadedData.length > 0;
@@ -212,22 +168,46 @@ function App() {
       <div className="absolute top-0 right-0 w-96 h-96 bg-brand-400/10 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent-400/10 rounded-full blur-3xl pointer-events-none"></div>
       
+      {/* AI Agent Status Indicator */}
+      <AIAgentStatus />
+      
       <div className="container mx-auto py-8 relative z-10">
         {!hasData ? (
           <>
             <div className="max-w-4xl mx-auto mb-12 text-center animate-fade-in">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-brand-500 to-brand-600 rounded-2xl shadow-lg shadow-brand-500/30 mb-6 animate-float">
-                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+              <div className="relative inline-flex items-center justify-center mb-6">
+                {/* Animated background rings */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-32 h-32 bg-brand-400/20 rounded-full animate-ping"></div>
+                  <div className="absolute w-24 h-24 bg-brand-500/20 rounded-full animate-ping animation-delay-200"></div>
+                </div>
+                <div className="relative inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-brand-500 via-brand-600 to-accent-600 rounded-2xl shadow-2xl shadow-brand-500/30 animate-float">
+                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
               </div>
               <h1 className="text-5xl font-bold mb-4">
                 <span className="text-gradient">Enterprise Data</span>
                 <span className="text-neutral-900"> AI Agent</span>
               </h1>
-              <p className="text-xl text-neutral-600 font-light">
+              <p className="text-xl text-neutral-600 font-light mb-6">
                 Transform your data into insights with AI-powered analysis
               </p>
+              <div className="flex items-center justify-center space-x-8 text-sm text-neutral-500">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>3 AI Agents Active</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-brand-500 rounded-full animate-pulse"></div>
+                  <span>Real-time Analysis</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
+                  <span>Executive-Ready Insights</span>
+                </div>
+              </div>
             </div>
             <DemoDataOption onDemoSelect={handleDataLoaded} />
             <div className="max-w-4xl mx-auto text-center mb-6">
@@ -245,7 +225,14 @@ function App() {
             <DataPreview data={uploadedData} fileName={dataFileName} />
             <QueryInterface onQuery={handleQuery} isLoading={isLoading} />
             
-            {isLoading && (
+            {showAgents && (
+              <AIAgentProgress 
+                isActive={showAgents} 
+                onComplete={() => console.log('Agents completed')}
+              />
+            )}
+            
+            {isLoading && !showAgents && (
               <div className="max-w-4xl mx-auto mt-8 animate-slide-up">
                 <div className="glass-card rounded-2xl p-8 shadow-xl border border-white/50">
                   <div className="flex items-center space-x-4">
